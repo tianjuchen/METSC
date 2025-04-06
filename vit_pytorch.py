@@ -104,6 +104,7 @@ class ViT(nn.Module):
         num_patches = (image_size // patch_size) ** 2
         patch_dim = channels * patch_size ** 2
 
+        # shape (batch_size, channels, height, width)
         self.to_patch_embedding = nn.Sequential(
             Rearrange('b c (h p1) (w p2) -> b (h w) (p1 p2 c)', p1 = patch_size, p2 = patch_size),
             nn.Linear(patch_dim, dim),

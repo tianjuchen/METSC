@@ -100,8 +100,6 @@ class Mapping(nn.Module):
 
             nn.Conv2d(in_channels=600,out_channels=1,kernel_size=1),
 
-
-
         ]
 
         model1 = [

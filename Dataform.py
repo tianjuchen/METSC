@@ -12,17 +12,18 @@ import torch
 import torch.utils.data as Data
 import numpy as np
 import h5py
+import sys
 
 class Mydataset(Data.Dataset):
 
     def __init__(self, datafile, normalize=False):
 
         self.data = h5py.File(datafile,'r')
-
+                
         self.data = self.data['data'][:]
 
         self.data = torch.from_numpy(self.data)
-
+        
         self.data = self.data.permute(1, 0, 3, 2)
 
         if normalize:
