@@ -102,8 +102,10 @@ if __name__ == '__main__':
     args = parser.parse_args()
     
     if args.batch:
+        sys.exit("stop")
         PNGtoMATConverter.batch_convert(args.input, args.output)
     else:
-        converter = PNGtoMATConverter()
+        ic, oc, patch = 60, 3, 3
+        converter = PNGtoMATConverter(input_channels = ic, output_channels = oc, patch_size = patch)
         converter.convert(args.input, args.output)
         
