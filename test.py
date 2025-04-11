@@ -21,11 +21,11 @@ import math
 import nibabel as nib
 
 parser = argparse.ArgumentParser()
-parser.add_argument("--batchSize", type=int, default=25230, help="size of the batches")
+parser.add_argument("--batchSize", type=int, default=63, help="size of the batches") # 25230 for original MRI image
 parser.add_argument(
     "--dataset",
     type=str,
-    default="./example/data.mat",
+    default="./image/data.mat",
     help="root directory of the dataset",
 )
 parser.add_argument(
@@ -38,14 +38,14 @@ parser.add_argument(
     "--cuda", action="store_false", default="False", help="use GPU computation"
 )
 parser.add_argument("--n_cpu", type=int, default=8, help="number of cpu threads to use")
-parser.add_argument("--net_sp", type=str, default="./model/sp.pth")
-parser.add_argument("--Mapping", type=str, default="./model/mapping.pth")
-parser.add_argument("--v", type=str, default="./model/v.pth")
+parser.add_argument("--net_sp", type=str, default="./attempt/sp.pth")
+parser.add_argument("--Mapping", type=str, default="./attempt/mapping.pth")
+parser.add_argument("--v", type=str, default="./attempt/v.pth")
 parser.add_argument(
     "--size1", type=int, default=3, help="size of the data crop (squared assumed)"
 )
 parser.add_argument(
-    "--mask", type=str, default="./example/mask.nii", help="mask used for generation"
+    "--mask", type=str, default="./image/mask.nii", help="mask used for generation"
 )
 
 opt = parser.parse_args()
@@ -59,11 +59,11 @@ net_sp = SparseReconstruction()
 
 v = ViT(
     image_size=3,
-    patch_size=1,
+    patch_size=3,
     num_classes=60 * 1 * 1,
     dim=512,
-    depth=6,
-    heads=8,
+    depth=8,
+    heads=10,
     mlp_dim=512,
     dropout=0.1,
     emb_dropout=0.1,
@@ -168,4 +168,4 @@ with torch.no_grad():
 
         image = nib.Nifti1Image(data, affine)
 
-        nib.save(image, "./output/result" + str(ii) + ".nii.gz")
+        nib.save(image, "./attempt/result" + str(ii) + ".nii.gz")
