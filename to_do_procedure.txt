@@ -1,0 +1,6 @@
+steps：
+1. run PatchControlledPNGtoMAT.py script，generate data.mat as input;
+2. run train_test.py to train transformer，including vit, sparse reconstruction and mapping；
+3. run mask_constraint.py generate the mask to be used for wrapping;
+4. run test.py, evaluate the trained model and output the results;
+5. run visualize.py convert the result to image file.
