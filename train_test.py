@@ -19,7 +19,7 @@ import math
 import nibabel as nib
 
 parser = argparse.ArgumentParser()
-parser.add_argument("--batchSize", type=int, default=63, help="size of the batches") # 841 for MRI image 
+parser.add_argument("--batchSize", type=int, default=25230, help="size of the batches") # 841 for MRI image 
 parser.add_argument(
     "--dataset",
     type=str,
@@ -45,8 +45,8 @@ parser.add_argument(
 parser.add_argument(
     "--mask", type=str, default="./example/mask.nii", help="mask used for generation"
 )
-parser.add_argument("--epochs", type=int, default=300, help="number of training epochs")
-parser.add_argument("--lr", type=float, default=0.01, help="learning rate")
+parser.add_argument("--epochs", type=int, default=10, help="number of training epochs")
+parser.add_argument("--lr", type=float, default=0.001, help="learning rate")
 
 opt = parser.parse_args()
 print(opt)

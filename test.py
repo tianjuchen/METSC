@@ -21,7 +21,7 @@ import math
 import nibabel as nib
 
 parser = argparse.ArgumentParser()
-parser.add_argument("--batchSize", type=int, default=63, help="size of the batches") # 25230 for original MRI image
+parser.add_argument("--batchSize", type=int, default=25230, help="size of the batches") # 25230 for original MRI image
 parser.add_argument(
     "--dataset",
     type=str,

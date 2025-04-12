@@ -23,8 +23,14 @@ class Mydataset(Data.Dataset):
         self.data = self.data['data'][:]
 
         self.data = torch.from_numpy(self.data)
-        
-        self.data = self.data.permute(1, 0, 3, 2)
+
+        # we need the shape to be in [batch_size, input_channel + outputchannel, patch_size, patch_size]
+        # currently it should be [batch_size, 63, 3, 3]
+        if self.data.shape[1] != 63:   
+            self.data = self.data.permute(1, 0, 3, 2)
+            print("input data shape is: ", self.data.shape)
+        else:
+            print("input data shape is: ", self.data.shape)
 
         if normalize:
 
