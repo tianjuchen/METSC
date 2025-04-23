@@ -23,7 +23,7 @@ parser.add_argument("--batchSize", type=int, default=25230, help="size of the ba
 parser.add_argument(
     "--dataset",
     type=str,
-    default="./image/data.mat",
+    default="./image/binary/data.mat",
     help="root directory of the dataset",
 )
 parser.add_argument(
@@ -45,8 +45,8 @@ parser.add_argument(
 parser.add_argument(
     "--mask", type=str, default="./example/mask.nii", help="mask used for generation"
 )
-parser.add_argument("--epochs", type=int, default=10, help="number of training epochs")
-parser.add_argument("--lr", type=float, default=0.001, help="learning rate")
+parser.add_argument("--epochs", type=int, default=500, help="number of training epochs")
+parser.add_argument("--lr", type=float, default=1e-4, help="learning rate")
 
 opt = parser.parse_args()
 print(opt)

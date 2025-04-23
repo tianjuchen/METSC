@@ -103,8 +103,8 @@ class PNGtoMATConverter:
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Convert PNGs to Mydataset-compatible .mat files')
-    parser.add_argument('--input', type=str, default='./image/550-500h-source.png', help='Input PNG file/directory')
-    parser.add_argument('--output', type=str, default='./image/data.mat', help='Output .mat file/directory')
+    parser.add_argument('--input', type=str, default='./image/binary/binary-650-5h.png', help='Input PNG file/directory')
+    parser.add_argument('--output', type=str, default='./image/binary/data.mat', help='Output .mat file/directory')
     parser.add_argument('--batch', action='store_true', help='Batch process directory')
     parser.add_argument('--max_patches', type=int, default=None, help='Maximum number of patches to extract')
 

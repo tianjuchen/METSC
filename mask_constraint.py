@@ -62,9 +62,9 @@ if __name__ == "__main__":
         sys.exit("stop")
 
     # 输入 PNG 图像的路径
-    input_png_path = "./image/550-500h-source.png"
+    input_png_path = "./image/binary/binary-650-5h.png"
     # 输出 NIfTI 掩码文件的路径
-    output_nii_path = "./image/mask.nii"
+    output_nii_path = "./image/binary/mask.nii"
     # 阈值，可根据实际情况调整
     threshold = 128
     # 目标图像形状
