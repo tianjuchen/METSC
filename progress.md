@@ -5,7 +5,7 @@ We would like to use the transformer to learn the details of the microstructural
 to various creep conditions. And eventually try to build a relation of a time series prediction
 model.
 
-## METSC 框架中 IVIM 模型解码器算法解析
+## Decoder algorithm for the IVIM model
 In the METSC framework, the decoder algorithm for the IVIM model consists of two main parts: sparse coding and network construction. The specific formula steps are as follows:
 
 **Sparse Coding**
@@ -27,3 +27,13 @@ x_{f}=\frac{x_{f}+\tau}{ \lvert x_{f}+\tau \rvert_{1}}
 wherein, $\tau = 1e^{-10}$.
 
 Calculate the model parameters: $f = I_{1}x$, $D=\frac{\Phi I_{2}x_{1 - f}}{I_{2}x_{1 - f}}$, $D^{\ast}=\frac{\Phi I_{3}x_{f}}{I_{1}x_{f}}$, where $I_{1}$, $I_{2}$, and $I_{3}$ are specific matrices.
+
+**Network Construction**
+
+Establish the objective function of the dictionary: $\min _{x} \lvert y-\Phi x \rvert_{2}^{2}+\beta \lvert x \rvert_{0}$, where $\beta$ controls the sparsity of matrix $x$.
+
+Use the Iterative Hard Thresholding (IHT) method for optimization: $x^{k + 1}=H_{M}(x^{k}+W^{H}(y - \Phi x^{k}))$, where $W=\Phi^{H}$, $S=I-\Phi^{H} \Phi$, and $H_{M}$ is a nonlinear operator.
+
+Simplify the nonlinear operator: In the IVIM model, since the model parameters are non - negative, $H_{M}(x)=\max(x - \lambda, 0)$, where $\lambda$ is a positive threshold.
+
+Estimate the model parameters: After training the dictionary, the parameters are estimated based on $f = I_{1}x$, $D=\frac{\Phi I_{2}x_{1 - f}}{I_{2}x_{1 - f}}$, and $D^{\ast}=\frac{\Phi I_{3}x_{f}}{I_{1}x_{f}}$.
