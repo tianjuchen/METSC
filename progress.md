@@ -11,3 +11,9 @@ In the METSC framework, the decoder algorithm for the IVIM model consists of two
 **Sparse Coding**
 
 Linearize the IVIM model: $z_{FC}=\Phi x+\eta$, where $z_{FC}$ is composed of the encoded dMRI signals at different b - values obtained by the Transformer encoder, $\Phi$ is the dictionary vector, $x$ is the dictionary coefficient vector, and $\eta$ is the noise term.
+
+Construct the dictionary vector: $\Phi=\left[\Phi_{D}, \Phi_{D^{\ast}}\right]$, $x=\left[x_{1 - f}, x_{f}\right]^{T}$.
+
+Normalization processing: To avoid a denominator of 0, the signals are normalized to the interval $[0,1]$. $x=\frac{x+\tau}{\| x+\tau\|_{1}}$, $x_{1 - f}=\frac{x_{1 - f}+\tau}{\left\| x_{1 - f}+\tau\right\|_{1}}$, $x_{f}=\frac{x_{f}+\tau}{\left\| x_{f}+\tau\right\|_{1}}$, and $\tau = 1e^{-10}$.
+
+Calculate the model parameters: $f = I_{1}x$, $D=\frac{\Phi I_{2}x_{1 - f}}{I_{2}x_{1 - f}}$, $D^{*}=\frac{\Phi I_{3}x_{f}}{I_{1}x_{f}}$, where $I_{1}$, $I_{2}$, and $I_{3}$ are specific matrices.
