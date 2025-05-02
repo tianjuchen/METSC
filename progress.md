@@ -30,9 +30,17 @@ Calculate the model parameters: $f = I_{1}x$, $D=\frac{\Phi I_{2}x_{1 - f}}{I_{2
 
 **Network Construction**
 
-Establish the objective function of the dictionary: $\min _{x} \lvert y-\Phi x \rvert_{2}^{2}+\beta \lvert x \rvert_{0}$, where $\beta$ controls the sparsity of matrix $x$.
+Establish the objective function of the dictionary: 
+```math
+\min_{x} || y-\Phi x ||_{2}^{2}+\beta || x ||_{0}
+```
+where $\beta$ controls the sparsity of matrix $x$.
 
-Use the Iterative Hard Thresholding (IHT) method for optimization: $x^{k + 1}=H_{M}(x^{k}+W^{H}(y - \Phi x^{k}))$, where $W=\Phi^{H}$, $S=I-\Phi^{H} \Phi$, and $H_{M}$ is a nonlinear operator.
+Use the Iterative Hard Thresholding (IHT) method for optimization: 
+```math
+x^{k + 1}=H_{M}(x^{k}+W^{H}(y - \Phi x^{k}))
+```
+where $W=\Phi^{H}$, $S=I-\Phi^{H} \Phi$, and $H_{M}$ is a nonlinear operator.
 
 Simplify the nonlinear operator: In the IVIM model, since the model parameters are non - negative, $H_{M}(x)=\max(x - \lambda, 0)$, where $\lambda$ is a positive threshold.
 
