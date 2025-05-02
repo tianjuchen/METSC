@@ -16,9 +16,9 @@ Construct the dictionary vector: $\Phi=\left[\Phi_{D}, \Phi_{D^{\ast}}\right]$, 
 
 Normalization processing: To avoid a denominator of 0, the signals are normalized to the interval $[0,1]$. 
 ```math
-x =\frac{x+\tau}{\lvert x+\tau \rvert_{1}}
+x =\frac{x+\tau}{\lvert x+\tau \rvert_{1}} \\
 
-x_{1 - f}=\frac{x_{1 - f}+\tau}{\lvert x_{1 - f}+\tau \rvert_{1}}
+x_{1 - f}=\frac{x_{1 - f}+\tau}{\lvert x_{1 - f}+\tau \rvert_{1}} \\
 
 x_{f}=\frac{x_{f}+\tau}{ \lvert x_{f}+\tau \rvert_{1}}
 ```
