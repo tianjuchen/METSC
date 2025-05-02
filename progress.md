@@ -10,7 +10,7 @@ model.
 
 **稀疏编码**
 
-将 IVIM 模型线性化：$z_{FC}=\Phi x+\eta$，$z_{FC}$由 Transformer 编码器获取的不同 b 值下编码 dMRI 信号构成，$\Phi$是字典向量，$x$是字典系数向量，$\eta$是噪声项。
+将 IVIM 模型线性化：$z_{FC}=\Phi x+\eta $，$z_{FC}$ 由Transformer编码器获取的不同b值下编码dMRI信号构成，$\Phi$是字典向量，$x$是字典系数向量，$\eta$是噪声项。
 
 构建字典向量：$\Phi=\left[\Phi_{D}, \Phi_{D^{\ast}}\right]$，$x=\left[x_{1-f}, x_{f}\right]^{T}$ 。
 
