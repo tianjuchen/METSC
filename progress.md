@@ -389,4 +389,88 @@ to the specific definition of the NODDI model.
 specific requirements, such as increasing the number of sampling points of parameters 
 or using a more reasonable parameter range.
 - Different algorithms can be chosen for sparse coding, such as Orthogonal 
-Matching Pursuit (OMP). Lasso regression is just one of the commonly used methods. 
+Matching Pursuit (OMP). Lasso regression is just one of the commonly used methods.
+
+**Sometimes we still need Chinese lol**
+```python
+import numpy as np
+from sklearn.linear_model import Lasso
+
+
+# 1. Overview of the NODDI Model
+# 模拟生成 NODDI 模型的观测信号
+def generate_noddi_signal(f_iso, f_nd, b_values, theta):
+    """
+    模拟生成 NODDI 模型在给定参数下的观测信号。
+    :param f_iso: 各向同性水的体积分数
+    :param f_nd: 神经突内的体积分数
+    :param b_values: 扩散敏感因子
+    :param theta: 扩散方向
+    :return: 观测信号
+    """
+    # 简单示例：假设各向同性、神经突内和神经突外的信号衰减函数
+    S_iso = np.exp(-b_values * 0.003)
+    S_nd = np.exp(-b_values * 0.001)
+    S_ec = np.exp(-b_values * 0.002)
+    S = f_iso * S_iso + f_nd * S_nd + (1 - f_iso - f_nd) * S_ec
+    return S
+
+
+# 2. Sparse Coding Concept
+# 生成字典矩阵
+def generate_dictionary(b_values, theta_values):
+    """
+    生成 NODDI 模型的字典矩阵。
+    :param b_values: 扩散敏感因子
+    :param theta_values: 扩散方向
+    :return: 字典矩阵
+    """
+    num_b = len(b_values)
+    num_theta = len(theta_values)
+    # 假设字典矩阵由不同参数组合的信号组成
+    dictionary = []
+    for f_iso in np.linspace(0, 1, 10):
+        for f_nd in np.linspace(0, 1 - f_iso, 10):
+            for theta in theta_values:
+                signal = generate_noddi_signal(f_iso, f_nd, b_values, theta)
+                dictionary.append(signal)
+    dictionary = np.array(dictionary).T
+    return dictionary
+
+
+# 稀疏编码
+def sparse_coding(S, Phi):
+    """
+    使用 Lasso 回归进行稀疏编码。
+    :param S: 观测信号
+    :param Phi: 字典矩阵
+    :return: 稀疏系数向量
+    """
+    # 使用 Lasso 回归进行稀疏编码
+    lasso = Lasso(alpha=0.01)
+    lasso.fit(Phi, S)
+    x = lasso.coef_
+    return x
+
+
+# 主程序
+if __name__ == "__main__":
+    # 参数设置
+    b_values = np.linspace(0, 3000, 10)
+    theta_values = np.linspace(0, np.pi, 5)
+    f_iso_true = 0.2
+    f_nd_true = 0.3
+
+    # 生成观测信号
+    S_obs = generate_noddi_signal(f_iso_true, f_nd_true, b_values, theta_values[0])
+
+    # 生成字典矩阵
+    Phi = generate_dictionary(b_values, theta_values)
+
+    # 进行稀疏编码
+    x_sparse = sparse_coding(S_obs, Phi)
+
+    print("Sparse coefficients:", x_sparse)
+    
+```
+
