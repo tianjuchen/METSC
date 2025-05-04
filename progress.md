@@ -597,3 +597,180 @@ according to formula (31) after obtaining $\kappa$.
 The actual code may also need to be combined with specific training processes 
 and data processing steps. The above is only a speculative explanation based 
 on the given code structure.
+
+
+## VIM 和 NODDI 解码器的网络构建及各组件作用
+
+The following uses the provided code to illustrate the network construction 
+for IVIM and NODDI decoders as described in section 2.2.2.3, analyzing how 
+different code components contribute to building the decoder networks.
+
+### General Network Construction Concepts for IVIM and NODDI Decoders
+
+For both IVIM and NODDI decoders, the network construction aims to process 
+the input data related to diffusion - weighted signals and estimate the 
+relevant model parameters (such as diffusion coefficients, volume fractions, etc.). 
+The key is to design layers and operations that can handle the sparse representation 
+of data and perform necessary calculations based on the model equations.
+
+### Code Components and Their Roles in Network Construction
+
+#### `Dictionary_Block` Class
+```python
+class Dictionary_Block(nn.Module):
+    def __init__(self, input):
+        super(Dictionary_Block, self).__init__()
+        Dict_block = [
+            nn.Threshold(0.001, 0, inplace=True),
+            nn.Conv2d(in_channels=input, out_channels=input, kernel_size=1, stride=1, bias=True),
+        ]
+        self.Dict_block = nn.Sequential(*Dict_block)
+
+    def forward(self, x):
+        return self.Dict_block(x)
+```
+
+This class plays a fundamental role in both IVIM and NODDI decoder networks. 
+In the context of network construction:
+
+- **Sparsity Enforcement**: The `nn.Threshold` layer helps in enforcing sparsity in 
+the data representation. For both IVIM and NODDI models, sparse coding is 
+crucial to represent the complex diffusion signals with a minimal set of 
+coefficients. By setting values below `0.001` to `0`, it promotes a sparse 
+solution, which is in line with the requirements of the sparse - based decoding 
+process.
+
+- **Dictionary - Related Operations**: The `nn.Conv2d` with a `1x1` kernel size can 
+be seen as an operation related to the dictionary. It may be used to transform 
+the input data in a way that aligns with the dictionary vectors, effectively 
+performing operations similar to projecting the data onto the dictionary elements. 
+This is important for both IVIM and NODDI as the dictionary is used to represent 
+the signals in a more interpretable form for parameter estimation.
+
+#### `W_layer` Class
+```python
+class W_layer(nn.Module):
+    def __init__(self, input):
+        super(W_layer, self).__init__()
+        W_block = [
+            nn.Conv2d(in_channels=60, out_channels=input, kernel_size=1, stride=1, bias=True),
+        ]
+        self.W_block = nn.Sequential(*W_block)
+
+    def forward(self, x):
+        return self.W_block(x)
+```
+This layer is likely involved in the initial transformation of the input data 
+for the decoder networks:
+- **Data Projection**: The `1x1` convolutional operation in this layer can 
+project the input data with `60` channels to a different number of channels 
+specified by `input`. In the network construction for IVIM and NODDI decoders, 
+this projection step may be used to adjust the data's feature space. 
+For example, it could be used to transform the raw diffusion - weighted 
+signal data into a space where the subsequent dictionary - based operations 
+and parameter calculations become more meaningful. It helps in extracting and 
+preparing the relevant features for further processing in the decoder network.
+
+
+#### `SparseReconstruction` Class
+```python
+class SparseReconstruction(nn.Module):
+    def __init__(self):
+        super(SparseReconstruction, self).__init__()
+        input = 601
+        self.dcblock1 = nn.Sequential(
+            Dictionary_Block(input)
+        )
+        self.wblock = nn.Sequential(
+            W_layer(input)
+        )
+        self.activ = nn.Sequential(
+            nn.Threshold(0.001, 0, inplace=True),
+        )
+
+    def forward(self, x):
+        x1 = self.wblock(x)
+        y1 = self.dcblock1(x1)
+        y1 = x1 + y1
+        for i in range(8):
+            y1 = x1 + self.dcblock1(y1)
+        y1 = self.activ(y1)
+        return y1
+```
+This class is a key component in the network construction for both IVIM and 
+NODDI decoders:
+
+- **Integrated Sparse Reconstruction**: It combines the `Dictionary_Block` and 
+`W_layer` to perform a comprehensive sparse reconstruction process. By repeatedly 
+applying the `Dictionary_Block` operation in a loop, it refines the sparse 
+representation of the input data. For IVIM and NODDI decoders, obtaining an 
+accurate sparse representation of the diffusion signals is essential for 
+subsequent parameter estimation. The multiple iterations help in optimizing 
+the sparse coefficients to better fit the model.
+
+- **Sparsity Refinement**: The final `nn.Threshold` layer in the `activ` 
+sequence further refines the sparsity of the output. This ensures that the data 
+representation is as sparse as possible while still retaining the necessary 
+information for parameter calculation. In the context of both models, a sparse 
+and accurate representation of the diffusion data is crucial for the decoder 
+to estimate the correct model parameters.
+
+
+#### `Mapping` Class
+```python
+class Mapping(nn.Module):
+    def __init__(self):
+        super(Mapping, self).__init__()
+        model = [
+            nn.Threshold(0.0001, 0, inplace=False),
+            nn.Conv2d(in_channels=600, out_channels=1, kernel_size=1),
+        ]
+        model1 = [
+            nn.Threshold(0.0001, 0, inplace=False),
+            nn.Conv2d(in_channels=600, out_channels=1, kernel_size=1),
+        ]
+        self.model = nn.Sequential(*model)
+        self.model1 = nn.Sequential(*model1)
+
+    def forward(self, x):
+        output1 = self.model(x)
+        output2 = self.model1(x)
+        output = torch.cat((output1, output2), dim=1)
+        return output
+```
+
+This class is mainly responsible for mapping the sparse - reconstructed 
+data to the model parameters in the decoder networks:
+
+- **Parameter Calculation**: The convolutional layers in this class are 
+likely used to perform calculations related to the model parameters. 
+For example, in the case of IVIM, it may calculate parameters such as the 
+diffusion coefficient $D$, perfusion fraction $f$, etc., and for NODDI, it may 
+calculate parameters like $v_{iso}$, $v_{ic}$, $\kappa$, and $OD$. The `1x1` 
+convolutional operations can be seen as implementing matrix - vector multiplications 
+similar to those in the model equations to compute the parameters.
+
+- **Output Merging**: By concatenating the outputs of the two branches 
+(`model` and `model1`), it combines different parameter - related calculations 
+into a single output. This output represents the estimated parameters of the 
+IVIM or NODDI model, which is the final result of the decoder network.
+
+
+### Overall Network Construction for IVIM and NODDI Decoders
+
+For the IVIM decoder network, the input data related to diffusion - weighted 
+signals first passes through the `W_layer` for initial transformation. 
+Then, it goes through the `SparseReconstruction` class to obtain a sparse 
+representation of the data. Finally, the `Mapping` class takes the 
+sparse - reconstructed data and calculates the IVIM model parameters such 
+as $D$, $f$, etc.
+
+For the NODDI decoder network, the process is similar. The input data is 
+first pre - processed by the `W_layer` and then undergoes sparse reconstruction 
+in the `SparseReconstruction` class. The `Mapping` class then uses the 
+sparse - reconstructed data to calculate NODDI - specific parameters like 
+$v_{iso}$, $v_{ic}$, $\kappa$, and $OD$.
+
+In summary, the combination of these code components forms the core of the network 
+construction for both IVIM and NODDI decoders, enabling the processing of 
+input data and the estimation of the relevant model parameters.
