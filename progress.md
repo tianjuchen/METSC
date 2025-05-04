@@ -309,10 +309,10 @@ that the observed signal can be approximated by a linear combination of
 these coefficients and dictionary vectors. For the NODDI model, we can 
 represent the observed signal $S$ as:
 ```math
-S = \Phi x+\epsilon
+S = \Phi x+\varepsilon
 ```
 where $\Phi$ is the dictionary matrix, $x$ is the sparse coefficient vector, 
-and $\epsilon$ is the noise term.
+and $\varepsilon$ is the noise term.
 
 ### Example Code Implementation
 
@@ -372,7 +372,7 @@ print("Sparse coefficients:", x_sparse)
 ### Code Explanation
 - **`generate_noddi_signal` function**: Simulates the generation of NODDI model observed 
 signals, calculating the signal values based on the given $f_{iso}$, $f_{nd}$, $b$ values,
-and $\theta.
+and $\theta$.
 - **`generate_dictionary` function**: Generates the dictionary matrix $\Phi$ by 
 traversing different combinations of $f_{iso}$, $f_{nd}$, and $\theta$, calculating 
 the corresponding signals and using them as column vectors of the dictionary.
