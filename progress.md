@@ -165,7 +165,7 @@ where $W=\Phi^{H}$, $S=I-\Phi^{H} \Phi$, and $H_{M}$ is a nonlinear operator.
 
 Simplify the nonlinear operator: In the IVIM model, since the model parameters are non - negative, $H_{M}(x)=\max(x - \lambda, 0)$, where $\lambda$ is a positive threshold.
 
-Estimate the model parameters: After training the dictionary $Phi$ and $x$, 
+Estimate the model parameters: After training the dictionary $\Phi$ and $x$, 
 the parameters are estimated based on 
 ```math
 f = I_{1}x
