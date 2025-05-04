@@ -28,6 +28,127 @@ wherein, $\tau = 1e^{-10}$.
 
 Calculate the model parameters: $f = I_{1}x$, $D=\frac{\Phi I_{2}x_{1 - f}}{I_{2}x_{1 - f}}$, $D^{\ast}=\frac{\Phi I_{3}x_{f}}{I_{1}x_{f}}$, where $I_{1}$, $I_{2}$, and $I_{3}$ are specific matrices.
 
+## IVIM Coding Illustration
+This code example shows how these classes can be used to implement a possible sparse 
+coding process for the IVIM model, including linear transformation, dictionary 
+handling, sparse reconstruction, and parameter mapping. However, it should be noted 
+that the code does not strictly implement the paper's formulas precisely.
+
+### 1. Linearizing the IVIM Model
+
+```math
+z_{FC}=\Phi x+\eta
+```
+
+There is no direct implementation of this formula in the code. 
+However, the convolution operation in the `W_layer` class might be related 
+to the calculation of the weights $\Phi$, which is used to perform a linear 
+transformation on the input signals.
+
+```python
+class W_layer(nn.Module):
+    def __init__(self,input):
+        super(W_layer, self).__init__()
+        W_block = [
+            nn.Conv2d(in_channels=60, out_channels=input, kernel_size=1, stride=1, bias=True),
+        ]
+        self.W_block = nn.Sequential(*W_block)
+    def forward(self, x):
+        return self.W_block(x)
+```
+
+### 2. Constructing the Dictionary Vectors
+
+```math
+\Phi=\left[\Phi_{D}, \Phi_{D^{\ast}}\right]
+```
+```math
+x=\left[x_{1-f}, x_{f}\right]^{T}
+```
+There is no direct construction of such dictionary vectors in the code. 
+But the `Dictionary_Block` class might be used to handle operations related 
+to the dictionary. The convolutional layer inside it might be used for some 
+transformation of the dictionary vectors.
+```python
+class Dictionary_Block(nn.Module):
+    def __init__(self,input):
+        super(Dictionary_Block, self).__init__()
+        Dict_block= [
+            nn.Threshold(0.001, 0, inplace=True),
+            nn.Conv2d(in_channels=input, out_channels=input, kernel_size=1, stride=1, bias=True),
+        ]
+        self.Dict_block = nn.Sequential(*Dict_block)
+    def forward(self, x):
+        return self.Dict_block(x)
+```
+
+### 3. Normalization Processing
+
+```math
+x=\frac{x+\tau}{\lvert x+\tau \rvert_{1}}
+```
+```math
+x_{1-f}=\frac{x_{1-f}+\tau}{\lvert x_{1-f}+\tau \rvert_{1}}
+```
+```math
+x_{f}=\frac{x_{f}+\tau}{\lvert x_{f}+\tau\rvert_{1}}
+```
+
+There is no direct implementation of normalization in the code. 
+However, the `nn.Threshold` layer might be related to avoiding division 
+by zero or handling the data range to some extent.
+
+```python
+class Dictionary_Block(nn.Module):
+    def __init__(self,input):
+        super(Dictionary_Block, self).__init__()
+        Dict_block= [
+            nn.Threshold(0.001, 0, inplace=True),
+            nn.Conv2d(in_channels=input, out_channels=input, kernel_size=1, stride=1, bias=True),
+        ]
+        self.Dict_block = nn.Sequential(*Dict_block)
+    def forward(self, x):
+        return self.Dict_block(x)
+```
+
+### 4. Calculating the Model Parameters
+
+```math
+f=I_{1}x
+```
+```math
+D=\frac{\Phi I_{2}x_{1-f}}{I_{2}x_{1-f}}
+```
+```math
+ $D^{\ast}=\frac{\Phi I_{3}x_{f}}{I_{1}x_{f}}
+```
+
+The `Mapping` class in the code might be related to calculating the model
+parameters. It processes the input through convolutional operations and 
+concatenates the results, which might be used to calculate different model 
+parameters.
+
+```python
+class Mapping(nn.Module):
+    def __init__(self):
+        super(Mapping, self).__init__()
+        model = [
+            nn.Threshold(0.0001, 0, inplace=False),
+            nn.Conv2d(in_channels=600,out_channels=1,kernel_size=1),
+        ]
+        model1 = [
+            nn.Threshold(0.0001, 0, inplace=False),
+            nn.Conv2d(in_channels=600,out_channels=1,kernel_size=1),
+        ]
+        self.model = nn.Sequential(*model)
+        self.model1 = nn.Sequential(*model1)
+    def forward(self, x):
+        output1 = self.model(x)
+        output2 = self.model1(x)
+        output = torch.cat((output1, output2), dim=1)
+        return output
+```
+
 **Network Construction**
 
 Establish the objective function of the dictionary: 
