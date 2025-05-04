@@ -34,7 +34,7 @@ coding process for the IVIM model, including linear transformation, dictionary
 handling, sparse reconstruction, and parameter mapping. However, it should be noted 
 that the code does not strictly implement the paper's formulas precisely.
 
-### 1. Linearizing the IVIM Model
+### Linearizing the IVIM Model
 
 ```math
 z_{FC}=\Phi x+\eta
@@ -57,7 +57,7 @@ class W_layer(nn.Module):
         return self.W_block(x)
 ```
 
-### 2. Constructing the Dictionary Vectors
+### Constructing the Dictionary Vectors
 
 ```math
 \Phi=\left[\Phi_{D}, \Phi_{D^{\ast}}\right]
@@ -82,7 +82,7 @@ class Dictionary_Block(nn.Module):
         return self.Dict_block(x)
 ```
 
-### 3. Normalization Processing
+### Normalization Processing
 
 ```math
 x=\frac{x+\tau}{\lvert x+\tau \rvert_{1}}
@@ -111,7 +111,7 @@ class Dictionary_Block(nn.Module):
         return self.Dict_block(x)
 ```
 
-### 4. Calculating the Model Parameters
+### Calculating the Model Parameters
 
 ```math
 f=I_{1}x
@@ -153,7 +153,7 @@ class Mapping(nn.Module):
 
 Establish the objective function of the dictionary: 
 ```math
-\min_{x} \| y-\Phi x \|_{2}^{2}+\beta \| x \|_{0}
+\min_{x} || y-\Phi x ||_{2}^{2}+\beta || x ||_{0}
 ```
 where $\beta$ controls the sparsity of matrix $x$.
 
@@ -165,7 +165,7 @@ where $W=\Phi^{H}$, $S=I-\Phi^{H} \Phi$, and $H_{M}$ is a nonlinear operator.
 
 Simplify the nonlinear operator: In the IVIM model, since the model parameters are non - negative, $H_{M}(x)=\max(x - \lambda, 0)$, where $\lambda$ is a positive threshold.
 
-Estimate the model parameters: After training the dictionary $\Phi$ and $x$, 
+Estimate the model parameters: After training the dictionary $Phi$ and $x$, 
 the parameters are estimated based on 
 ```math
 f = I_{1}x
@@ -277,3 +277,116 @@ print(f"Estimated f shape: {f_estimated.shape}")
 print(f"Estimated D shape: {D_estimated.shape}")
 print(f"Estimated D* shape: {D_star_estimated.shape}")    
 ```
+## NODDI model
+
+** Sparse Code **
+
+The NODDI (Neurite Orientation Dispersion and Density Imaging) model is a 
+magnetic resonance imaging (MRI) model used to quantitatively describe the 
+microstructure of biological tissues. The application of sparse coding in 
+the NODDI model can help estimate the model parameters more effectively 
+from the observed signals. Below, we'll describe the sparse coding process 
+for the NODDI model, combining general ideas with sample code.
+
+### Overview of the NODDI Model
+
+The NODDI model typically consists of three main components: isotropic 
+water diffusion, intra - neurite diffusion, and extra - neurite diffusion. 
+Its signal model can be expressed as:
+```math
+[S(b,\theta)=f_{iso}S_{iso}(b)+f_{nd}S_{nd}(b,\theta)+(1 - f_{iso}-f_{nd})S_{ec}(b,\theta)]
+```
+where $(S(b,\theta))$ is the observed signal under the diffusion - sensitive factor 
+$(b)$ and diffusion direction $(\theta)$, $(f_{iso})$ is the volume fraction of 
+isotropic water, $(f_{nd})$ is the volume fraction of intra - neurite, and $(S_{iso}(b))$,
+$(S_{nd}(b,\theta))$, and $(S_{ec}(b,\theta))$ are the signal attenuation 
+functions of isotropic, intra - neurite, and extra - neurite, respectively.
+
+### Sparse Coding Concept
+
+The goal of sparse coding is to find a set of sparse coefficients such 
+that the observed signal can be approximated by a linear combination of 
+these coefficients and dictionary vectors. For the NODDI model, we can 
+represent the observed signal $(S)$ as:
+```math
+S = \Phi x+\epsilon
+```
+where $(\Phi)$ is the dictionary matrix, $(x)$ is the sparse coefficient vector, 
+and $(\epsilon)$ is the noise term.
+
+### Example Code Implementation
+
+```python
+import numpy as np
+from sklearn.linear_model import Lasso
+
+# Simulate the generation of NODDI model observed signals
+def generate_noddi_signal(f_iso, f_nd, b_values, theta):
+    # Simple example: Assume the signal attenuation functions for isotropic, intra - neurite, and extra - neurite
+    S_iso = np.exp(-b_values * 0.003)
+    S_nd = np.exp(-b_values * 0.001)
+    S_ec = np.exp(-b_values * 0.002)
+    S = f_iso * S_iso + f_nd * S_nd + (1 - f_iso - f_nd) * S_ec
+    return S
+
+# Generate the dictionary matrix
+def generate_dictionary(b_values, theta_values):
+    num_b = len(b_values)
+    num_theta = len(theta_values)
+    # Assume the dictionary matrix consists of signals with different parameter combinations
+    dictionary = []
+    for f_iso in np.linspace(0, 1, 10):
+        for f_nd in np.linspace(0, 1 - f_iso, 10):
+            for theta in theta_values:
+                signal = generate_noddi_signal(f_iso, f_nd, b_values, theta)
+                dictionary.append(signal)
+    dictionary = np.array(dictionary).T
+    return dictionary
+
+# Sparse coding
+def sparse_coding(S, Phi):
+    # Use Lasso regression for sparse coding
+    lasso = Lasso(alpha=0.01)
+    lasso.fit(Phi, S)
+    x = lasso.coef_
+    return x
+
+# Parameter settings
+b_values = np.linspace(0, 3000, 10)
+theta_values = np.linspace(0, np.pi, 5)
+f_iso_true = 0.2
+f_nd_true = 0.3
+
+# Generate the observed signal
+S_obs = generate_noddi_signal(f_iso_true, f_nd_true, b_values, theta_values[0])
+
+# Generate the dictionary matrix
+Phi = generate_dictionary(b_values, theta_values)
+
+# Perform sparse coding
+x_sparse = sparse_coding(S_obs, Phi)
+
+print("Sparse coefficients:", x_sparse)    
+```
+
+### Code Explanation
+- **`generate_noddi_signal` function**: Simulates the generation of NODDI model observed 
+signals, calculating the signal values based on the given $f_{iso}$, $f_{nd}$, $b$ values,
+and $\theta.
+- **`generate_dictionary` function**: Generates the dictionary matrix $\Phi$ by 
+traversing different combinations of $f_{iso}$, $f_{nd}$, and $\theta$, calculating 
+the corresponding signals and using them as column vectors of the dictionary.
+- **`sparse_coding` function**: Uses Lasso regression from the `sklearn` library 
+for sparse coding to find the sparse coefficient vector $x$.
+- **Main program**: Sets the parameters, generates the observed signal and the 
+dictionary matrix, then performs sparse coding and outputs the sparse coefficients.
+
+### Notes
+- The signal attenuation functions $S_{iso}$, $S_{nd}$, and $S_{ec}$ in the example 
+are simplified forms. In practical applications, they need to be adjusted according 
+to the specific definition of the NODDI model.
+- The generation method of the dictionary matrix can be optimized according to 
+specific requirements, such as increasing the number of sampling points of parameters 
+or using a more reasonable parameter range.
+- Different algorithms can be chosen for sparse coding, such as Orthogonal 
+Matching Pursuit (OMP). Lasso regression is just one of the commonly used methods. 
