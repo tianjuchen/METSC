@@ -153,7 +153,7 @@ class Mapping(nn.Module):
 
 Establish the objective function of the dictionary: 
 ```math
-\min_{x} || y-\Phi x ||_{2}^{2}+\beta || x ||_{0}
+\min_{x} \| y-\Phi x \|_{2}^{2}+\beta \| x \|_{0}
 ```
 where $\beta$ controls the sparsity of matrix $x$.
 
@@ -294,12 +294,12 @@ The NODDI model typically consists of three main components: isotropic
 water diffusion, intra - neurite diffusion, and extra - neurite diffusion. 
 Its signal model can be expressed as:
 ```math
-[S(b,\theta)=f_{iso}S_{iso}(b)+f_{nd}S_{nd}(b,\theta)+(1 - f_{iso}-f_{nd})S_{ec}(b,\theta)]
+S(b,\theta)=f_{iso}S_{iso}(b)+f_{nd}S_{nd}(b,\theta)+(1 - f_{iso}-f_{nd})S_{ec}(b,\theta)
 ```
-where $(S(b,\theta))$ is the observed signal under the diffusion - sensitive factor 
-$(b)$ and diffusion direction $(\theta)$, $(f_{iso})$ is the volume fraction of 
-isotropic water, $(f_{nd})$ is the volume fraction of intra - neurite, and $(S_{iso}(b))$,
-$(S_{nd}(b,\theta))$, and $(S_{ec}(b,\theta))$ are the signal attenuation 
+where $S(b,\theta)$ is the observed signal under the diffusion - sensitive factor 
+$b$ and diffusion direction $\theta$, $f_{iso}$ is the volume fraction of 
+isotropic water, $f_{nd}$ is the volume fraction of intra - neurite, and $S_{iso}(b)$,
+$S_{nd}(b,\theta)$, and $S_{ec}(b,\theta)$ are the signal attenuation 
 functions of isotropic, intra - neurite, and extra - neurite, respectively.
 
 ### Sparse Coding Concept
@@ -307,12 +307,12 @@ functions of isotropic, intra - neurite, and extra - neurite, respectively.
 The goal of sparse coding is to find a set of sparse coefficients such 
 that the observed signal can be approximated by a linear combination of 
 these coefficients and dictionary vectors. For the NODDI model, we can 
-represent the observed signal $(S)$ as:
+represent the observed signal $S$ as:
 ```math
 S = \Phi x+\epsilon
 ```
-where $(\Phi)$ is the dictionary matrix, $(x)$ is the sparse coefficient vector, 
-and $(\epsilon)$ is the noise term.
+where $\Phi$ is the dictionary matrix, $x$ is the sparse coefficient vector, 
+and $\epsilon$ is the noise term.
 
 ### Example Code Implementation
 
