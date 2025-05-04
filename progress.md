@@ -120,7 +120,7 @@ f=I_{1}x
 D=\frac{\Phi I_{2}x_{1-f}}{I_{2}x_{1-f}}
 ```
 ```math
- $D^{\ast}=\frac{\Phi I_{3}x_{f}}{I_{1}x_{f}}
+ D^{\ast}=\frac{\Phi I_{3}x_{f}}{I_{1}x_{f}}
 ```
 
 The `Mapping` class in the code might be related to calculating the model
