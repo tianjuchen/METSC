@@ -153,7 +153,7 @@ class Mapping(nn.Module):
 
 Establish the objective function of the dictionary: 
 ```math
-\min_{x} || y-\Phi x ||_{2}^{2}+\beta || x ||_{0}
+\min_{x} \| y-\Phi x \|_{2}^{2}+\beta \| x \|_{0}
 ```
 where $\beta$ controls the sparsity of matrix $x$.
 
