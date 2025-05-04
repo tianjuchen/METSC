@@ -165,4 +165,115 @@ where $W=\Phi^{H}$, $S=I-\Phi^{H} \Phi$, and $H_{M}$ is a nonlinear operator.
 
 Simplify the nonlinear operator: In the IVIM model, since the model parameters are non - negative, $H_{M}(x)=\max(x - \lambda, 0)$, where $\lambda$ is a positive threshold.
 
-Estimate the model parameters: After training the dictionary, the parameters are estimated based on $f = I_{1}x$, $D=\frac{\Phi I_{2}x_{1 - f}}{I_{2}x_{1 - f}}$, and $D^{\ast}=\frac{\Phi I_{3}x_{f}}{I_{1}x_{f}}$.
+Estimate the model parameters: After training the dictionary $Phi$ and $x$, 
+the parameters are estimated based on 
+```math
+f = I_{1}x
+```
+```math
+D=\frac{\Phi I_{2}x_{1 - f}}{I_{2}x_{1 - f}}
+```
+```math
+D^{\ast}=\frac{\Phi I_{3}x_{f}}{I_{1}x_{f}}
+```
+
+One possible approach of the code can be:
+```python
+import torch
+import torch.nn as nn
+
+class Dictionary_Block(nn.Module):
+    def __init__(self, input):
+        super(Dictionary_Block, self).__init__()
+        Dict_block = [
+            nn.Threshold(0.001, 0, inplace=True),
+            nn.Conv2d(in_channels=input, out_channels=input, kernel_size=1, stride=1, bias=True),
+        ]
+        self.Dict_block = nn.Sequential(*Dict_block)
+
+    def forward(self, x):
+        return self.Dict_block(x)
+
+class W_layer(nn.Module):
+    def __init__(self, input):
+        super(W_layer, self).__init__()
+        W_block = [
+            nn.Conv2d(in_channels=60, out_channels=input, kernel_size=1, stride=1, bias=True),
+        ]
+        self.W_block = nn.Sequential(*W_block)
+
+    def forward(self, x):
+        return self.W_block(x)
+
+class SparseReconstruction(nn.Module):
+    def __init__(self):
+        super(SparseReconstruction, self).__init__()
+        input = 601
+        self.dcblock1 = nn.Sequential(
+            Dictionary_Block(input)
+        )
+        self.wblock = nn.Sequential(
+            W_layer(input)
+        )
+        self.activ = nn.Sequential(
+            nn.Threshold(0.001, 0, inplace=True),
+        )
+
+    def forward(self, x):
+        x1 = self.wblock(x)
+        y1 = self.dcblock1(x1)
+        y1 = x1 + y1
+        for i in range(8):
+            y1 = x1 + self.dcblock1(y1)
+        y1 = self.activ(y1)
+        return y1
+
+class Mapping(nn.Module):
+    def __init__(self):
+        super(Mapping, self).__init__()
+        model = [
+            nn.Threshold(0.0001, 0, inplace=False),
+            nn.Conv2d(in_channels=600, out_channels=1, kernel_size=1),
+        ]
+        model1 = [
+            nn.Threshold(0.0001, 0, inplace=False),
+            nn.Conv2d(in_channels=600, out_channels=1, kernel_size=1),
+        ]
+        self.model = nn.Sequential(*model)
+        self.model1 = nn.Sequential(*model1)
+
+    def forward(self, x):
+        output1 = self.model(x)
+        output2 = self.model1(x)
+        output = torch.cat((output1, output2), dim=1)
+        return output
+
+# 假设模型已经训练好
+sparse_reconstruction = SparseReconstruction()
+mapping = Mapping()
+
+# 输入数据
+input_tensor = torch.randn(1, 60, 10, 10)
+
+# 进行稀疏重建
+sparse_output = sparse_reconstruction(input_tensor)
+
+# 进行参数映射
+mapped_output = mapping(sparse_output)
+
+# 这里简单假设 mapped_output 中的两个通道分别对应 f 和 D 的近似值
+f_estimated = mapped_output[:, 0, :, :]
+D_estimated = mapped_output[:, 1, :, :]
+
+# 对于 D*，由于代码中未明确体现，这里只是示意
+# 假设存在一个函数来计算 D*
+def calculate_D_star(sparse_output):
+    # 这里只是占位实现，需要根据具体公式修改
+    return torch.randn_like(f_estimated)
+
+D_star_estimated = calculate_D_star(sparse_output)
+
+print(f"Estimated f shape: {f_estimated.shape}")
+print(f"Estimated D shape: {D_estimated.shape}")
+print(f"Estimated D* shape: {D_star_estimated.shape}")    
+```
