@@ -279,7 +279,7 @@ print(f"Estimated D* shape: {D_star_estimated.shape}")
 ```
 ## NODDI model
 
-** Sparse Code **
+**Sparse Code**
 
 The NODDI (Neurite Orientation Dispersion and Density Imaging) model is a 
 magnetic resonance imaging (MRI) model used to quantitatively describe the 
