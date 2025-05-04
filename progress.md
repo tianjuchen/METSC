@@ -474,3 +474,126 @@ if __name__ == "__main__":
     
 ```
 
+## 基于 NODDI 模型的代码实现与参数计算推测
+
+The equations (23) - (31) in the paper are used to calculate the parameters 
+of the NODDI model, including $v_{iso}$ (the volume fraction of cerebrospinal 
+fluid), $v_{ic}$ (the intracellular volume fraction), $\kappa$ (a parameter 
+related to the orientation dispersion of neurites), and $OD$ (orientation dispersion). 
+In the code implementation, although there is no explicit code that exactly 
+corresponds to the formulas one - to - one, it can be speculated that 
+the `Mapping` class and the `SparseReconstruction` class are related to them. 
+The following is a detailed explanation combining the formulas and the code:
+
+### Review of the Formulas
+
+```math
+v_{iso}=I_{6}x_{i}
+```
+```math
+x_{t}=\frac{x_{t}+\tau}{\lvert x_{t}+\tau\rvert_{1}}
+```
+```math
+v_{ic}=\frac{\Phi_{t}I_{7}x_{t}}{I_{9}x_{t}}
+```
+```math
+\kappa=\frac{\Phi_{t}I_{8}x_{t}}{I_{9}x_{t}}
+```
+```math
+I_{6} \in \mathbb{R}^{1 \times i}
+```
+```math
+I_{7} \in \mathbb{R}^{2j \times 2j}
+```
+```math
+I_{8} \in \mathbb{R}^{2j \times 2j}
+```
+```math
+I_{9} \in \mathbb{R}^{1 \times 2j} 
+```
+```math
+OD=\frac{2}{\pi} \arctan (\frac{1}{\kappa})
+```
+
+### Speculation on Code Implementation
+
+#### `SparseReconstruction` Class
+
+This class is responsible for performing sparse reconstruction on 
+the input data to obtain an output containing dictionary coefficients. 
+In the sparse coding of the NODDI model, this output may correspond to 
+$x_{t}$ and $x_{i}$ in the formulas. By processing the input data through 
+multiple iterations, it realizes the transformation from the original 
+data to the sparse representation, providing a basis for the subsequent 
+calculation of NODDI model parameters.
+
+```python
+class SparseReconstruction(nn.Module):
+    def __init__(self):
+        super(SparseReconstruction, self).__init__()
+        input = 601
+        self.dcblock1 = nn.Sequential(
+            Dictionary_Block(input)
+        )
+        self.wblock = nn.Sequential(
+            W_layer(input)
+        )
+        self.activ = nn.Sequential(
+            nn.Threshold(0.001, 0, inplace=True),
+        )
+    def forward(self,x):
+        x1 = self.wblock(x)
+        y1 = self.dcblock1(x1)
+        y1 = x1 + y1
+        for i in range (8):
+            y1 = x1 + self.dcblock1(y1)
+        y1 = self.activ(y1)
+        return y1
+```
+
+#### `Mapping` Class
+
+This class processes the output of the `SparseReconstruction` class 
+to calculate the parameters of the NODDI model. The operations of the 
+convolutional layers and the threshold layer in it may be used to implement 
+the matrix multiplications and normalization operations in the formulas.
+
+```python
+class Mapping(nn.Module):
+    def __init__(self):
+        super(Mapping, self).__init__()
+        model = [
+            nn.Threshold(0.0001, 0, inplace=False),
+            nn.Conv2d(in_channels=600,out_channels=1,kernel_size=1),
+        ]
+        model1 = [
+            nn.Threshold(0.0001, 0, inplace=False),
+            nn.Conv2d(in_channels=600,out_channels=1,kernel_size=1),
+        ]
+        self.model = nn.Sequential(*model)
+        self.model1 = nn.Sequential(*model1)
+    def forward(self, x):
+        output1 = self.model(x)
+        output2 = self.model1(x)
+        output = torch.cat((output1, output2), dim=1)
+        return output
+```
+
+#### Specific Calculation Corresponding
+
+Suppose the output of `SparseReconstruction` is `sparse_output`, which 
+contains dictionary coefficient information. In the `Mapping` class, the 
+convolutional layers in `model` and `model1` may be used to calculate the 
+intermediate results related to $v_{iso}$, $v_{ic}$, and $\kappa$ respectively. 
+For example, the convolutional operation in `model` may correspond to matrix 
+multiplications such as $I_{6}x_{i}$, $\Phi_{t}I_{7}x_{t}$, and 
+$\Phi_{t}I_{8}x_{t}$; the threshold layer may be related to the normalization 
+operation in the formulas, such as the normalization in formula (24). Finally, 
+after concatenation, the `output` may contain the calculated parameters 
+$v_{iso}$, $v_{ic}$, and $\kappa$. As for the calculation of $OD$, it may not be 
+directly reflected in the code, but in practical applications, it can be calculated 
+according to formula (31) after obtaining $\kappa$.
+
+The actual code may also need to be combined with specific training processes 
+and data processing steps. The above is only a speculative explanation based 
+on the given code structure.
