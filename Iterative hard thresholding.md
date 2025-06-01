@@ -8,16 +8,12 @@
 The IHT method is used to solve the sparse reconstruction problem, which is central to the METSC framework. The core objective function is:
 
 
-$ 
-\min_{x} \left\| z_{FC} - \Phi x \right\|_2^2 + \beta \| x \|_0
- $
+$$ \min_{x} \| z_{FC} - \Phi x \|_{2}^{2} + \beta \| x \|_{0} $$
 
 where $z_{FC}$ is the encoded dMRI signal from the Transformer encoder, $\Phi$ is the dictionary matrix, $x$ is the vector of dictionary coefficients, and $\beta$ controls the sparsity of $x$. The IHT iteration updates $x$ by projecting onto the set of sparse vectors, which is formalized as:
 
 
-$ 
-x^{n+1} = H_M \left[ \Phi^H z_{FC} + (I - \Phi^H \Phi) x^n \right]
- $
+$$ x^{n+1} = H_{M} [\Phi^{H} z_{FC} + (I - \Phi^{H} \Phi) x^{n}] $$
 
 where $H_M$ is a hard thresholding operator that sets values below a threshold $\lambda$ to zero .
 
