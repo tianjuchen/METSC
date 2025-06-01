@@ -6,7 +6,7 @@ model-driven network design and sparse coding techniques, as detailed
 in the provided document. Here's a step-by-step explanation of its implementation:
 
 
-### **1. Theoretical Foundation of IHT in METSC**
+### **Theoretical Foundation of IHT in METSC**
 
 The IHT method is used to solve the sparse reconstruction problem, which is central to the METSC framework. The core objective function is:
 
@@ -21,12 +21,181 @@ $$ x^{n+1} = H_{M} [\Phi^{H} z_{FC} + (I - \Phi^{H} \Phi) x^{n}] $$
 where $H_M$ is a hard thresholding operator that sets values below a threshold $\lambda$ to zero .
 
 
-### **2. Network Architecture for IHT Implementation**
+### **Iterative Hard Thresholding Layer Implementation**
+
+The IHT layers are part of the sparse representation stage in the METSC decoder. The key components 
+include dictionary operations, iterative updates, and thresholding. Here's a code example:
+
+```python
+import torch
+import torch.nn as nn
+import torch.nn.functional as F
+
+
+class IHTLayer(nn.Module):
+    """Iterative Hard Thresholding layer for sparse reconstruction"""
+    def __init__(self, dict_dim, threshold=0.001, use_nonneg=True):
+        super(IHTLayer, self).__init__()
+        self.threshold = threshold
+        self.use_nonneg = use_nonneg
+        
+        # Dictionary transpose (Φ^H) and (I - Φ^HΦ) operations
+        # In practice, these would be learned during training
+        self.W = nn.Linear(dict_dim, dict_dim, bias=False)  # Represents Φ^H
+        self.S = nn.Linear(dict_dim, dict_dim, bias=False)  # Represents (I - Φ^HΦ)
+        
+        # Initialize weights to identity for simplicity
+        nn.init.eye_(self.W.weight)
+        nn.init.eye_(self.S.weight)
+
+    def hard_thresholding(self, x):
+        """Hard thresholding operator H_M"""
+        if self.use_nonneg:
+            # For non-negative parameters (e.g., IVIM)
+            return F.threshold(x, self.threshold, 0)
+        else:
+            # General hard thresholding
+            return torch.where(
+                torch.abs(x) >= self.threshold, 
+                x, 
+                torch.zeros_like(x)
+            )
+
+    def forward(self, z_FC, x_prev):
+        """
+        z_FC: Encoded features from Transformer (shape: [batch, dict_dim])
+        x_prev: Previous iteration's sparse coefficients (shape: [batch, dict_dim])
+        """
+        # Compute Φ^H z_FC
+        w_z = self.W(z_FC)
+        # Compute (I - Φ^HΦ) x_prev
+        s_x = self.S(x_prev)
+        # Iterative update: x^{n+1} = H_M(Φ^H z_FC + (I - Φ^HΦ) x^n)
+        x_next = self.hard_thresholding(w_z + s_x)
+        return x_next
+
+
+class SparseDecoder(nn.Module):
+    """Sparse representation decoder with IHT iterations"""
+    def __init__(self, dict_dim, num_iterations=8, threshold=0.001, use_nonneg=True):
+        super(SparseDecoder, self).__init__()
+        self.num_iterations = num_iterations
+        # Create multiple IHT layers
+        self.iht_layers = nn.ModuleList([
+            IHTLayer(dict_dim, threshold, use_nonneg) 
+            for _ in range(num_iterations)
+        ])
+        self.threshold = threshold
+        self.use_nonneg = use_nonneg
+
+    def forward(self, z_FC):
+        """
+        z_FC: Encoded features from Transformer (shape: [batch, dict_dim])
+        """
+        batch_size = z_FC.shape[0]
+        # Initialize sparse coefficients as zeros
+        x = torch.zeros(batch_size, z_FC.shape[1]).to(z_FC.device)
+        
+        # Perform IHT iterations
+        for layer in self.iht_layers:
+            x = layer(z_FC, x)
+        
+        # Normalize coefficients (e.g., for IVIM/NODDI)
+        x = (x + 1e-10) / torch.norm(x + 1e-10, p=1, dim=1, keepdim=True)
+        return x
+```
+### **Code Explanation**
+
+#### ** **`IHTLayer`** Class**
+
+
+
+*   **Dictionary Operations**: The `W` and `S` linear layers represent $\Phi^H$ and $(I - \Phi^H\Phi)$, which are learned during training to fit the dictionary model .
+
+
+*   **Hard Thresholding**: The `hard_thresholding` method implements the $H_M$ operator, zeroing coefficients below a threshold. For IVIM, non-negativity is enforced .
+
+
+*   **Iterative Update**: Each layer computes $x^{n+1} = H_M(\Phi^H z_{FC} + (I - \Phi^H\Phi) x^n)$, aligning with the IHT update equation .
+
+
+#### ** **`SparseDecoder`** Class**
+
+
+
+*   **Iteration Stacking**: Multiple `IHTLayer` instances are stacked (e.g., 8 iterations) to unfold the IHT process .
+
+
+*   **Initialization & Normalization**: Sparse coefficients start as zeros and are normalized after iterations to satisfy constraints (e.g., sum-to-one for volume fractions) .
+
+
+### **Integration with Transformer Encoder**
+
+The `SparseDecoder` would be integrated into the METSC framework as part of the decoder stage:
+```python
+class METSC(nn.Module):
+    def __init__(self, dict_dim=600, num_iterations=8):
+        super(METSC, self).__init__()
+        # Transformer encoder (simplified here)
+        self.transformer_encoder = nn.Sequential(
+            # ... Transformer layers from the paper ...
+        )
+        # Sparse decoder with IHT layers
+        self.sparse_decoder = SparseDecoder(dict_dim, num_iterations)
+        # Mapping layer to microstructural parameters
+        self.mapping = nn.Sequential(
+            nn.Conv2d(dict_dim, 3, kernel_size=1),  # Example for NODDI (v_iso, v_ic, OD)
+        )
+
+    def forward(self, x):
+        # Transformer encoding
+        z_FC = self.transformer_encoder(x)
+        # Sparse reconstruction via IHT
+        sparse_coeffs = self.sparse_decoder(z_FC)
+        # Map to microstructural parameters
+        params = self.mapping(sparse_coeffs)
+        return params
+```
+
+### **Key Alignments with the Document**
+
+
+
+1.  **Dictionary Learning**: The `W` and `S` layers correspond to the dictionary operations in Eq. (33)–(35) .
+
+
+2.  **Thresholding**: The `hard_thresholding` function implements the non-negative thresholding in Eq. (37) .
+
+
+3.  **Iterative Unfolding**: The `SparseDecoder` with `num_iterations=8` matches the 8 IHT iterations mentioned in the code explanation .
+
+
+4.  **Normalization**: The post-processing step aligns with Eq. (24) for NODDI and Eq. (11)–(13) for IVIM .
+
+
+### **Practical Considerations**
+
+
+
+*   **Dictionary Initialization**: In practice, the dictionary $\Phi$ is initialized based on discretized model parameters (e.g., IVIM's $D$ and $D^*$) .
+
+
+*   **Shared Weights**: The `W` and `S` weights are shared across IHT layers, as stated in the document .
+
+
+*   **Training**: The entire network is trained end-to-end with MSE loss, adapting dictionary parameters and thresholding values .
+
+
+This implementation demonstrates how the IHT method is translated into executable code, integrating 
+model-driven sparsity with Transformer features for dMRI microstructure estimation.
+
+
+### Network Architecture for IHT Implementation**
 
 The IHT process is unfolded into a neural network within the METSC decoder, consisting of two main components:
 
 
-#### **(1) Sparse Representation Stage**
+#### **Sparse Representation Stage**
 
 
 
@@ -43,7 +212,7 @@ The IHT process is unfolded into a neural network within the METSC decoder, cons
     *   A hard thresholding layer $H_M$ that zeros out coefficients below $\lambda$ –.
 
 
-#### **(2) Model-Driven Decoder Design**
+#### **Model-Driven Decoder Design**
 
 
 
@@ -60,7 +229,7 @@ The IHT process is unfolded into a neural network within the METSC decoder, cons
 *   This design allows the network to learn the optimal dictionary and thresholding parameters during training, rather than relying on pre-defined values .
 
 
-### **3. Integration with Transformer Encoder**
+### **Integration with Transformer Encoder**
 
 
 
@@ -73,7 +242,7 @@ The IHT process is unfolded into a neural network within the METSC decoder, cons
 *   **Parameter Mapping**: The sparse coefficients $x$ are normalized and mapped to microstructural parameters (e.g., $v_{iso}$, $v_{ic}$, $\kappa$) using linear combinations defined by the model equations –.
 
 
-### **4. Adaptation for dMRI Models**
+### **Adaptation for dMRI Models**
 
 
 
@@ -83,7 +252,7 @@ The IHT process is unfolded into a neural network within the METSC decoder, cons
 *   **NODDI Model**: For NODDI, the decoder linearizes the multi-compartment signal model, with the dictionary $\Phi$ capturing intracellular, extracellular, and CSF components. The IHT iterations enforce sparsity in the orientation dispersion and volume fraction coefficients –.
 
 
-### **5. Training and Optimization**
+### **Training and Optimization**
 
 
 
@@ -93,7 +262,7 @@ The IHT process is unfolded into a neural network within the METSC decoder, cons
 *   The IHT parameters (e.g., threshold $\lambda$) are learned during training, allowing the network to adapt to the specific characteristics of dMRI data .
 
 
-### **6. Key Advantages of IHT in METSC**
+### **Key Advantages of IHT in METSC**
 
 
 
@@ -108,4 +277,8 @@ The IHT process is unfolded into a neural network within the METSC decoder, cons
 
 ### **Summary**
 
-The IHT method is realized in the METSC Transformer through a model-driven decoder that unrolls iterative sparse reconstruction steps into learnable network layers. This integration allows the framework to leverage both the representational power of Transformer and the physical constraints of dMRI models, resulting in accurate and efficient microstructural parameter estimation.
+The IHT method is realized in the METSC Transformer through a 
+model-driven decoder that unrolls iterative sparse reconstruction 
+steps into learnable network layers. This integration allows the framework 
+to leverage both the representational power of Transformer and the physical 
+constraints of dMRI models, resulting in accurate and efficient microstructural parameter estimation.
