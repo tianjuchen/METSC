@@ -1,6 +1,9 @@
-# 《METSC 中迭代硬阈值（IHT）方法的实现及优势》
+# IHT method implementation in METSC
 
-\*The Iterative Hard Thresholding (IHT) method is realized in the Transformer structure of the METSC framework through a combination of model-driven network design and sparse coding techniques, as detailed in the provided document. Here's a step-by-step explanation of its implementation:
+The Iterative Hard Thresholding (IHT) method is realized in the 
+Transformer structure of the METSC framework through a combination of 
+model-driven network design and sparse coding techniques, as detailed 
+in the provided document. Here's a step-by-step explanation of its implementation:
 
 
 ### **1. Theoretical Foundation of IHT in METSC**
@@ -8,7 +11,7 @@
 The IHT method is used to solve the sparse reconstruction problem, which is central to the METSC framework. The core objective function is:
 
 
-$$ \min_{x} \| z_{FC} - \Phi x \|_{2}^{2} + \beta \| x \|_{0} $$
+$$ \min_{x} \Vert z_{FC} - \Phi x \Vert_{2}^{2} + \beta \| x \|_{0} $$
 
 where $z_{FC}$ is the encoded dMRI signal from the Transformer encoder, $\Phi$ is the dictionary matrix, $x$ is the vector of dictionary coefficients, and $\beta$ controls the sparsity of $x$. The IHT iteration updates $x$ by projecting onto the set of sparse vectors, which is formalized as:
 
