@@ -256,28 +256,26 @@ self.attn = nn.MultiheadAttention(
 **线性投影**：将输入 `x` 投影到查询（Query）、键（Key）和值（Value）三个矩阵：
 
 
-$  Q = W_Q \cdot x, \quad K = W_K \cdot x, \quad V = W_V \cdot x  $
+$$  Q = W_Q \cdot x $$
+$$ \quad K = W_K \cdot x $$ 
+$$ \quad V = W_V \cdot x  $$
 
-其中 $  W_Q, W_K, W_V  $ 是可学习的权重矩阵。
-
+其中 $W_{Q}$, $W_{K}$, $W_{V}$是可学习的权重矩阵。
 
 
 **注意力得分计算**：
 
+$$  \text{Attention}(Q, K, V) = \text{softmax} (\frac{QK^T}{\sqrt{d_k}})V  $$
 
-$  \text{Attention}(Q, K, V) = \text{softmax}\left(\frac{QK^T}{\sqrt{d_k}}\right)V  $
-
-其中 $  d_k  $ 是查询 / 键的维度，用于缩放防止梯度消失。
-
-
+其中 $d_{k}$ 是查询 / 键的维度，用于缩放防止梯度消失。
 
 
 **多头并行**：将输入特征分割为多个头，每个头独立计算注意力，然后拼接结果：
 
 
-$  \text{MultiHead}(Q, K, V) = \text{Concat}(\text{head}_1, \ldots, \text{head}_h)W^O  $
+$$  \text{MultiHead}(Q, K, V) = \text{Concat}(\text{head}_1, \ldots, \text{head}_h)W^O  $$
 
-其中 $  h  $ 是头的数量，$  W^O  $ 是输出投影矩阵。
+其中 $h$ 是头的数量, $W^{O}$ 是输出投影矩阵。
 
 ### **在 TransformerBlock 中的应用**
 
