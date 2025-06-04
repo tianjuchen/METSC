@@ -282,7 +282,7 @@ $$  \text{MultiHead}(Q, K, V) = \text{Concat}(\text{head}_1, \ldots, \text{head}
 在您的代码中，多头自注意力的前向传播为：
 
 ```python
-x, \_ = self.attn(x, x, x, need\_weights=False)
+x, _ = self.attn(x, x, x, need\_weights=False)
 ```
 
 -  **输入参数**：`(x, x, x)` 表示查询、键、值均来自同一输入，即**自注意力**。
