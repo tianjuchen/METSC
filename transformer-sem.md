@@ -230,6 +230,80 @@ class TransformerBlock(nn.Module):
 - 前馈网络：使用全连接层和 GELU 激活函数对自注意力的输出进行非线性变换。
 - 残差连接：在自注意力和前馈网络中使用残差连接，有助于缓解梯度消失问题。
 
+### 多头自注意力机制的作用
+
+上述代码中`self.attn = nn.MultiheadAttention(dim, heads, dropout=dropout)` 是 Transformer 模
+块中实现**多头自注意力机制**的核心组件。
+
+多头自注意力机制允许模型同时关注输入序列的不同部分，捕获序列中的长距离依赖关系。
+在 Vision Transformer (ViT) 中，这一机制用于处理图像 patch 之间的关系，类似于传统 CNN 中的空间注意力。
+```python
+self.attn = nn.MultiheadAttention(
+    embed_dim=dim,       # 输入特征的维度
+    num_heads=heads,     # 注意力头的数量
+    dropout=dropout      # Dropout概率
+)
+```
+- `dim`：输入特征的维度（如 768），对应 ViT 中每个 patch 的嵌入维度。
+- `heads`：注意力头的数量（如 8 或 12）。每个头独立计算注意力，然后将结果拼接，使模型能够捕获不同子空间的信息。
+- `dropout`：应用于注意力权重的 dropout 率，用于正则化防止过拟合。
+
+
+### **内部计算流程**
+
+多头自注意力的计算可分为以下步骤：
+
+**线性投影**：将输入 `x` 投影到查询（Query）、键（Key）和值（Value）三个矩阵：
+
+
+$  Q = W_Q \cdot x, \quad K = W_K \cdot x, \quad V = W_V \cdot x  $
+
+其中 $  W_Q, W_K, W_V  $ 是可学习的权重矩阵。
+
+
+
+**注意力得分计算**：
+
+
+$  \text{Attention}(Q, K, V) = \text{softmax}\left(\frac{QK^T}{\sqrt{d_k}}\right)V  $
+
+其中 $  d_k  $ 是查询 / 键的维度，用于缩放防止梯度消失。
+
+
+
+
+**多头并行**：将输入特征分割为多个头，每个头独立计算注意力，然后拼接结果：
+
+
+$  \text{MultiHead}(Q, K, V) = \text{Concat}(\text{head}_1, \ldots, \text{head}_h)W^O  $
+
+其中 $  h  $ 是头的数量，$  W^O  $ 是输出投影矩阵。
+
+### **在 TransformerBlock 中的应用**
+
+在您的代码中，多头自注意力的前向传播为：
+
+```python
+x, \_ = self.attn(x, x, x, need\_weights=False)
+```
+
+-  **输入参数**：`(x, x, x)` 表示查询、键、值均来自同一输入，即**自注意力**。
+-  **输出**：`x` 是经过注意力加权后的输出，`_` 是注意力权重（因 `need_weights=False` 被忽略）。
+
+
+### **为什么使用多头注意力？**
+
+- **并行捕获多尺度信息**：不同的注意力头可以关注输入的不同部分，例如一个头关注局部细节，另一个头关注全局关系。
+- **增强表达能力**：多头机制使模型能够学习更丰富的特征表示，提高性能。
+
+| 类型&#xA;   | 特点&#xA;                    | 应用场景&#xA;                  |
+| --------- | -------------------------- | -------------------------- |
+| **自注意力**  | 查询、键、值来自同一输入&#xA;          | Transformer、ViT&#xA;       |
+| **交叉注意力** | 查询来自一个输入，键 / 值来自另一个输入&#xA; | 编码器 - 解码器架构（如 GPT）&#xA;    |
+| **单头注意力** | 只有一个注意力头&#xA;              | 简化模型（如早期 Transformer）&#xA; |
+| **多头注意力** | 多个头并行计算注意力&#xA;            | 主流 Transformer 架构&#xA;     |
+
+
 ## 定义 HallPetchLoss 类
 
 ```python
