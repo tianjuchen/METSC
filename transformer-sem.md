@@ -105,3 +105,132 @@ class SEMViT(nn.Module):
 - 晶粒尺寸分布估计头部：将分类标记的输出映射到 64 个不同的晶粒尺寸区间，并使用 Softmax 函数输出概率分布。
 - Hall-Petch 关系参数：定义了摩擦应力 $\sigma_{0}$ 和 Hall-Petch 常数 $k$，并将其作为可学习的参数。
 - 权重初始化：使用 Xavier 初始化方法对线性层的权重进行初始化，对 LayerNorm 层的权重和偏置进行常数初始化。
+
+## 定义前向传播方法
+
+```python
+    def forward(self, x):
+        # 预处理：增强晶粒边界特征
+        x = self.pre_conv(x)
+        
+        # Patch嵌入
+        x = self.patch_embedding(x)
+        x = x.flatten(2).transpose(1, 2)
+        
+        # 添加分类标记
+        cls_tokens = self.cls_token.expand(x.shape[0], -1, -1)
+        x = torch.cat((cls_tokens, x), dim=1)
+        x += self.pos_embedding
+        x = self.dropout(x)
+        
+        # Transformer编码
+        x = self.transformer(x)
+        
+        # 提取分类标记的输出
+        cls_output = x[:, 0]
+        
+        # 预测晶粒尺寸分布
+        grain_size_dist = self.to_grain_size(cls_output)
+        
+        # 基于Hall-Petch关系计算屈服强度
+        # 假设我们有一个预设的晶粒尺寸区间列表
+        grain_sizes = torch.linspace(1e-6, 100e-6, 64).to(x.device)  # 从1微米到100微米
+        mean_grain_size = torch.sum(grain_size_dist * grain_sizes, dim=1, keepdim=True)
+        
+        # Hall-Petch公式: sigma_y = sigma_0 + k*d^(-1/2)
+        d_inv_sqrt = torch.rsqrt(mean_grain_size)
+        yield_strength = self.sigma_0 + self.k * d_inv_sqrt
+        
+        return {
+            'grain_size_distribution': grain_size_dist,
+            'mean_grain_size': mean_grain_size,
+            'yield_strength': yield_strength,
+            'hall_petch_params': {'sigma_0': self.sigma_0, 'k': self.k}
+        }
+```
+
+- 预处理：对输入图像进行卷积操作，增强晶粒边界特征。
+- Patch 嵌入：将图像分割成多个 patch，并将其嵌入到高维向量空间中。
+- 添加分类标记：在输入特征中添加一个分类标记，用于后续的分类任务。
+- Transformer 编码：使用 Transformer 编码器对输入特征进行编码。
+- 预测晶粒尺寸分布：提取分类标记的输出，并通过全连接层预测晶粒尺寸分布。
+- 计算屈服强度：根据预测的晶粒尺寸分布计算平均晶粒尺寸，并使用 Hall-Petch 公式计算屈服强度。
+- 返回结果：返回预测的晶粒尺寸分布、平均晶粒尺寸、屈服强度和 Hall-Petch 关系参数。
+
+## 定义 TransformerBlock 类
+
+```python
+class TransformerBlock(nn.Module):
+    """Transformer模块，包含自注意力和前馈网络"""
+    def __init__(self, dim, heads, mlp_dim, dropout=0.1):
+        super().__init__()
+        self.norm1 = nn.LayerNorm(dim)
+        self.attn = nn.MultiheadAttention(dim, heads, dropout=dropout)
+        self.dropout = nn.Dropout(dropout)
+        self.norm2 = nn.LayerNorm(dim)
+        self.mlp = nn.Sequential(
+            nn.Linear(dim, mlp_dim),
+            nn.GELU(),
+            nn.Dropout(dropout),
+            nn.Linear(mlp_dim, dim),
+            nn.Dropout(dropout)
+        )
+        
+    def forward(self, x):
+        # 自注意力
+        residual = x
+        x = self.norm1(x)
+        x, _ = self.attn(x, x, x, need_weights=False)
+        x = self.dropout(x)
+        x = residual + x
+        
+        # 前馈网络
+        residual = x
+        x = self.norm2(x)
+        x = self.mlp(x)
+        x = residual + x
+        
+        return x
+```
+
+- 初始化参数：定义了 Transformer 块的维度、头数、前馈网络的维度和 dropout 率。
+- 自注意力机制：使用多头自注意力机制对输入特征进行加权求和。
+- 前馈网络：使用全连接层和 GELU 激活函数对自注意力的输出进行非线性变换。
+- 残差连接：在自注意力和前馈网络中使用残差连接，有助于缓解梯度消失问题。
+
+## 定义 HallPetchLoss 类
+
+```python
+class HallPetchLoss(nn.Module):
+    def __init__(self, alpha=0.5):
+        super().__init__()
+        self.alpha = alpha
+        self.mse = nn.MSELoss()
+        self.kl_div = nn.KLDivLoss(reduction='batchmean')
+        
+    def forward(self, predictions, targets):
+        # 晶粒尺寸分布的KL散度损失
+        dist_loss = self.kl_div(
+            torch.log(predictions['grain_size_distribution'] + 1e-10), 
+            targets['grain_size_distribution']
+        )
+        
+        # 屈服强度的MSE损失
+        strength_loss = self.mse(
+            predictions['yield_strength'], 
+            targets['yield_strength']
+        )
+        
+        # 总损失
+        total_loss = self.alpha * dist_loss + (1 - self.alpha) * strength_loss
+        return total_loss
+```
+
+- 初始化参数：定义了损失函数的权重系数$\alpha$，以及均方误差损失函数（$MSE$）和 $KL$ 散度损失函数。
+- 计算损失：分别计算晶粒尺寸分布的 $KL$ 散度损失和屈服强度的 $MSE$ 损失，并根据权重系数计算总损失。
+
+## 总结
+
+本模型通过结合 ***Vision Transformer*** 和 ***Hall-Petch*** 关系，实现了对细晶 $SEM$ 图像的分析和屈服强度的预测。
+模型的主要步骤包括**图像预处理**、**Patch 嵌入**、**Transformer 编码**、**晶粒尺寸分布预测**和**屈服强度**计算。同时，
+使用自定义的损失函数来优化模型的性能。 
