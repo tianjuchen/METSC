@@ -170,7 +170,7 @@ def main():
         'learning_rate': 1e-4,
         'num_epochs': 50,
         'alpha': 0.5,  # 损失函数中晶粒尺寸和强度的权重
-        'data_dir': 'path/to/your/data',
+        'data_dir': '/mnt/c/Users/Admin/Desktop/METSC/nanomaterials/',
         'device': 'cuda' if torch.cuda.is_available() else 'cpu'
     }
     
@@ -183,9 +183,16 @@ def main():
     
     # 创建数据集和数据加载器
     dataset = SEMGrainDataset(root_dir=config['data_dir'], transform=transform)
-    train_size = int(0.7 * len(dataset))
-    val_size = int(0.15 * len(dataset))
-    test_size = len(dataset) - train_size - val_size
+    total_size = len(dataset)
+    if total_size < 3:
+        raise ValueError("数据集样本数量过少，无法进行划分。")
+    
+    train_size = max(int(0.7 * total_size), 1)
+    val_size = max(int(0.15 * total_size), 1)
+    test_size = total_size - train_size - val_size
+    if test_size < 1:
+        test_size = 1
+        train_size = total_size - val_size - test_size
     
     train_dataset, val_dataset, test_dataset = torch.utils.data.random_split(
         dataset, [train_size, val_size, test_size]
