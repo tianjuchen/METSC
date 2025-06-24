@@ -137,7 +137,7 @@
 *   Dong, Shujing, et al. “Investigations on shear band formation in metallic nanolayered composites.” *Applied Physics Letters*, 2023（通讯作者）
 
 
-*   更多成果详见 \[此处可添加个人学术主页链接]
+*   更多成果详见 \[https://scholar.google.com/citations?user=jKlWpycAAAAJ&hl=en]
 
 
 ### 美国能源部报告&#xA;
