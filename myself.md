@@ -127,7 +127,9 @@
 
 ### 发表文献&#xA;
 
-*   Chen, Tianju, Fu, Huadong, et al. "Predicting the high temperature deformation behavior of Haynes282 by a dislocation-density based crystal plasticity model." Materials Science and Engineering: A 923 (2025): 147690.
+*   Dong, S., Chen, T., Fu, H., Chen, X., & Zhou, C. (2025). Mechanical response and interface properties of graphene-metal composites: a review. Journal of Materials Research and Technology （通讯作者）
+
+*   Chen, Tianju, Fu, Huadong, et al. "Predicting the high temperature deformation behavior of Haynes282 by a dislocation-density based crystal plasticity model." Materials Science and Engineering: A 923 (2025): 147690 （通讯作者）
 
 *   T. Chen\*, M. Messner. “Training material models using gradient descent algorithms.” *International Journal of Plasticity*, 2023（通讯作者）
 
